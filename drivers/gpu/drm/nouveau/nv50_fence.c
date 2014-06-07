@@ -29,7 +29,7 @@
 #include "nouveau_dma.h"
 #include "nv10_fence.h"
 
-#include "nv50_display.h"
+#include "dispnv50/disp.h"
 
 static int
 nv50_fence_context_new(struct nouveau_channel *chan)

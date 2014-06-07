@@ -33,7 +33,7 @@
 #include "nouveau_dma.h"
 #include "nouveau_gem.h"
 #include "nouveau_connector.h"
-#include "nv50_display.h"
+#include "dispnv50/disp.h"
 
 #include "nouveau_fence.h"
 

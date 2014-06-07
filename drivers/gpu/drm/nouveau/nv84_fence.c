@@ -32,7 +32,7 @@
 #include "nouveau_dma.h"
 #include "nouveau_fence.h"
 
-#include "nv50_display.h"
+#include "dispnv50/disp.h"
 
 u64
 nv84_fence_crtc(struct nouveau_channel *chan, int crtc)

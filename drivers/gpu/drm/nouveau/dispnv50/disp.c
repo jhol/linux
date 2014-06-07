@@ -27,14 +27,13 @@
 #include <drm/drmP.h>
 #include <drm/drm_crtc_helper.h>
 
-#include "nouveau_drm.h"
-#include "nouveau_dma.h"
-#include "nouveau_gem.h"
-#include "nouveau_connector.h"
-#include "nouveau_encoder.h"
-#include "nouveau_crtc.h"
-#include "nouveau_fence.h"
-#include "nv50_display.h"
+#include <nouveau_drm.h>
+#include <nouveau_dma.h>
+#include <nouveau_gem.h>
+#include <nouveau_connector.h>
+#include <nouveau_encoder.h>
+#include <nouveau_crtc.h>
+#include <nouveau_fence.h>
 
 #include <core/client.h>
 #include <core/gpuobj.h>
@@ -44,6 +43,8 @@
 #include <subdev/bar.h>
 #include <subdev/fb.h>
 #include <subdev/i2c.h>
+
+#include "disp.h"
 
 #define EVO_DMA_NR 9
 

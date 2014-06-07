@@ -26,8 +26,6 @@
 #include "nouveau_dma.h"
 #include "nouveau_fence.h"
 
-#include "nv50_display.h"
-
 static int
 nvc0_fence_emit32(struct nouveau_channel *chan, u64 virtual, u32 sequence)
 {

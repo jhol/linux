@@ -71,6 +71,13 @@ nv50_dac_sense(struct nv50_disp_priv *priv, int or, u32 loadval)
 }
 
 int
+nv50_dac_set_tv_output_mode(struct nv50_disp_priv *priv, int or, u32 mode)
+{
+	nv_wr32(priv, NV50_PDISPLAY_TV_OUTPUT_MODE_CTRL(or), mode);
+	return 0;
+}
+
+int
 nv50_dac_mthd(struct nouveau_object *object, u32 mthd, void *args, u32 size)
 {
 	struct nv50_disp_priv *priv = (void *)object->engine;
@@ -91,6 +98,9 @@ nv50_dac_mthd(struct nouveau_object *object, u32 mthd, void *args, u32 size)
 			data[0] = ret;
 			ret = 0;
 		}
+		break;
+	case NV50_DISP_DAC_TV_MODE:
+		ret = priv->dac.tv_output_mode(priv, or, data[0]);
 		break;
 	default:
 		BUG_ON(1);

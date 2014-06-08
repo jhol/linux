@@ -809,6 +809,7 @@
 #define NV50_PDISPLAY_DAC_DPMS_CTRL_BLANKED                          0x00000010
 #define NV50_PDISPLAY_DAC_DPMS_CTRL_OFF                              0x00000040
 #define NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING                          0x80000000
+#define NV50_PDISPLAY_DAC_TV_OUTPUT_MODE_CTRL(i)      (0x0061a008 + (i) * 0x800)
 #define NV50_PDISPLAY_DAC_LOAD_CTRL(i)                (0x0061a00c + (i) * 0x800)
 #define NV50_PDISPLAY_DAC_LOAD_CTRL_ACTIVE                           0x00100000
 #define NV50_PDISPLAY_DAC_LOAD_CTRL_PRESENT                          0x38000000

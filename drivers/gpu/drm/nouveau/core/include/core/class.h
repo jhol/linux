@@ -315,6 +315,7 @@ struct nv04_display_scanoutpos {
 #define NV50_DISP_DAC_PWR_STATE_OFF                                  0x00000040
 #define NV50_DISP_DAC_LOAD                                           0x00020100
 #define NV50_DISP_DAC_LOAD_VALUE                                     0x00000007
+#define NV50_DISP_DAC_TV_MODE                                        0x00020200
 
 #define NV50_DISP_PIOR_MTHD                                          0x00030000
 #define NV50_DISP_PIOR_MTHD_TYPE                                     0x0000f000

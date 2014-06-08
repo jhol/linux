@@ -1687,6 +1687,15 @@ char *nv50_tv_norm_names[NUM_TV_NORMS] = {
 	[TV_NORM_NTSC_J] = "NTSC-J"
 };
 
+static void
+nv50_tv_mode_set(struct drm_encoder *encoder, struct drm_display_mode *drm_mode,
+	struct drm_display_mode *adjusted_mode)
+{
+	nv50_dac_mode_set(encoder, drm_mode, adjusted_mode);
+
+	
+}
+
 static enum drm_connector_status
 nv50_tv_detect(struct drm_encoder *encoder, struct drm_connector *connector)
 {
@@ -1781,7 +1790,7 @@ static const struct drm_encoder_helper_funcs nv50_tv_hfunc = {
 	.mode_fixup = nv50_dac_mode_fixup,
 	.prepare = nv50_dac_disconnect,
 	.commit = nv50_dac_commit,
-	.mode_set = nv50_dac_mode_set,
+	.mode_set = nv50_tv_mode_set,
 	.disable = nv50_dac_disconnect,
 	.get_crtc = nv50_display_crtc_get,
 	.detect = nv50_tv_detect

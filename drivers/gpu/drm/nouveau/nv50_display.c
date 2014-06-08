@@ -1644,6 +1644,77 @@ static const struct drm_encoder_funcs nv50_dac_func = {
 };
 
 /******************************************************************************
+ * TV
+ *****************************************************************************/
+
+static int nv50_tv_get_modes(struct drm_encoder *encoder,
+			     struct drm_connector *connector)
+{
+	struct drm_display_mode *mode;
+	
+	mode = drm_cvt_mode(encoder->dev, 640, 480, 60, false,
+			     DRM_MODE_FLAG_INTERLACE, false);
+	mode->type |= DRM_MODE_TYPE_DRIVER;
+	drm_mode_probed_add(connector, mode);
+
+	return 1;
+}
+
+static int nv50_tv_mode_valid(struct drm_encoder *encoder,
+			      struct drm_display_mode *mode)
+{
+	return MODE_OK;
+}
+
+static int nv50_tv_create_resources(struct drm_encoder *encoder,
+				    struct drm_connector *connector)
+{
+	return 0;
+}
+
+static int nv50_tv_set_property(struct drm_encoder *encoder,
+				struct drm_connector *connector,
+				struct drm_property *property,
+				uint64_t val)
+{
+	return 0;
+}
+
+static struct drm_encoder_slave_funcs nv50_tv_slave_funcs = {
+	.get_modes = nv50_tv_get_modes,
+	.mode_valid = nv50_tv_mode_valid,
+	.create_resources = nv50_tv_create_resources,
+	.set_property = nv50_tv_set_property,
+};
+
+static int
+nv50_tv_create(struct drm_connector *connector, struct dcb_output *dcbe,
+	struct nouveau_i2c_port *i2c_port)
+{
+	struct nouveau_encoder *nv_encoder;
+	struct drm_encoder *encoder;
+
+	nv_encoder = kzalloc(sizeof(*nv_encoder), GFP_KERNEL);
+	if (!nv_encoder)
+		return -ENOMEM;
+	nv_encoder->dcb = dcbe;
+	nv_encoder->or = ffs(dcbe->or) - 1;
+	nv_encoder->i2c = i2c_port;
+
+	encoder = to_drm_encoder(nv_encoder);
+	encoder->possible_crtcs = dcbe->heads;
+	encoder->possible_clones = 0;
+	drm_encoder_init(connector->dev, encoder,
+		&nv50_dac_func, DRM_MODE_ENCODER_TVDAC);
+	drm_encoder_helper_add(encoder, &nv50_dac_hfunc);
+	to_encoder_slave(encoder)->slave_funcs = &nv50_tv_slave_funcs;
+
+	drm_mode_connector_attach_encoder(connector, encoder);
+
+	return 0;
+}
+
+/******************************************************************************
  * Audio
  *****************************************************************************/
 static void
@@ -2201,6 +2272,9 @@ nv50_display_create(struct drm_device *dev)
 				ret = nv50_encoder_create(connector, dcbe,
 					DRM_MODE_ENCODER_DAC, i2c_port,
 					&nv50_dac_func, &nv50_dac_hfunc);
+				break;
+			case DCB_OUTPUT_TV:
+				ret = nv50_tv_create(connector, dcbe, i2c_port);
 				break;
 			case DCB_OUTPUT_TMDS:
 			case DCB_OUTPUT_DP:

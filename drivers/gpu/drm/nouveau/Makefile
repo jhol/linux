@@ -319,6 +319,9 @@ nouveau-y += nv04_fbcon.o nv50_fbcon.o nvc0_fbcon.o
 # drm/kms/nv04:nv50
 include $(src)/dispnv04/Makefile
 
+# drm/kms/nv50:
+include $(src)/dispnv50/Makefile
+
 # drm/kms/nv50-
 nouveau-y += nv50_display.o
 

@@ -1688,12 +1688,21 @@ char *nv50_tv_norm_names[NUM_TV_NORMS] = {
 };
 
 static void
+nv50_tv_update_properties(struct drm_encoder *encoder)
+{
+}
+
+static void
+nv50_tv_commit(struct drm_encoder *encoder)
+{
+	nv50_dac_commit(encoder);
+}
+
+static void
 nv50_tv_mode_set(struct drm_encoder *encoder, struct drm_display_mode *drm_mode,
 	struct drm_display_mode *adjusted_mode)
 {
 	nv50_dac_mode_set(encoder, drm_mode, adjusted_mode);
-
-	
 }
 
 static enum drm_connector_status
@@ -1789,7 +1798,7 @@ static const struct drm_encoder_helper_funcs nv50_tv_hfunc = {
 	.dpms = nv50_dac_dpms,
 	.mode_fixup = nv50_dac_mode_fixup,
 	.prepare = nv50_dac_disconnect,
-	.commit = nv50_dac_commit,
+	.commit = nv50_tv_commit,
 	.mode_set = nv50_tv_mode_set,
 	.disable = nv50_dac_disconnect,
 	.get_crtc = nv50_display_crtc_get,

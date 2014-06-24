@@ -103,7 +103,7 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 int
 nv50_dac_set_tv_output_mode(NV50_DISP_MTHD_V1)
 {
-	nv_wr32(priv, NV50_PDISPLAY_TV_OUTPUT_MODE_CTRL(or), mode);
+	nv_wr32(priv, NV50_PDISPLAY_DAC_TV_OUTPUT_MODE_CTRL(or), mode);
 	return 0;
 }
 

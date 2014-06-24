@@ -1661,9 +1661,7 @@ struct nv50_tv_encoder {
         enum nv17_tv_norm tv_norm;
 #endif
         int subconnector;
-#if 0
         int select_subconnector;
-#endif
 };
 #define to_tv_enc(x) container_of(nouveau_encoder(x),           \
                                   struct nv50_tv_encoder, base)
@@ -1690,19 +1688,36 @@ char *nv50_tv_norm_names[NUM_TV_NORMS] = {
 static void
 nv50_tv_update_properties(struct drm_encoder *encoder)
 {
+	u32 tv_mode_set;
+	struct nv50_disp *disp = nv50_disp(encoder->dev);
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+	int or = nouveau_encoder(encoder)->or;
+
+	const int connector = tv_enc->select_subconnector ?
+		tv_enc->select_subconnector : tv_enc->subconnector;
+
+	switch (connector) {
+	case DRM_MODE_SUBCONNECTOR_Composite:
+		tv_mode_set = 0x00000040;
+		break;
+	case DRM_MODE_SUBCONNECTOR_SVIDEO:
+		tv_mode_set = 0x00000013;
+		break;
+	case DRM_MODE_SUBCONNECTOR_Component:
+		tv_mode_set = 0x01a50000;
+		break;
+	default:
+		return;
+	}
+
+	nv_exec(disp->core, NV50_DISP_DAC_TV_MODE + or, &tv_mode_set, sizeof(tv_mode_set));
 }
 
 static void
 nv50_tv_commit(struct drm_encoder *encoder)
 {
 	nv50_dac_commit(encoder);
-}
-
-static void
-nv50_tv_mode_set(struct drm_encoder *encoder, struct drm_display_mode *drm_mode,
-	struct drm_display_mode *adjusted_mode)
-{
-	nv50_dac_mode_set(encoder, drm_mode, adjusted_mode);
+	nv50_tv_update_properties(encoder);
 }
 
 static enum drm_connector_status
@@ -1780,6 +1795,9 @@ static int nv50_tv_create_resources(struct drm_encoder *encoder,
 	drm_mode_create_tv_properties(dev, NUM_TV_NORMS, nv50_tv_norm_names);
 
 	drm_object_attach_property(&connector->base,
+					conf->tv_select_subconnector_property,
+					tv_enc->select_subconnector);
+	drm_object_attach_property(&connector->base,
 					conf->tv_subconnector_property,
 					tv_enc->subconnector);
 
@@ -1799,7 +1817,7 @@ static const struct drm_encoder_helper_funcs nv50_tv_hfunc = {
 	.mode_fixup = nv50_dac_mode_fixup,
 	.prepare = nv50_dac_disconnect,
 	.commit = nv50_tv_commit,
-	.mode_set = nv50_tv_mode_set,
+	.mode_set = nv50_dac_mode_set,
 	.disable = nv50_dac_disconnect,
 	.get_crtc = nv50_display_crtc_get,
 	.detect = nv50_tv_detect

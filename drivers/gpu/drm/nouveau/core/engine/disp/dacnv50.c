@@ -73,7 +73,7 @@ nv50_dac_sense(struct nv50_disp_priv *priv, int or, u32 loadval)
 int
 nv50_dac_set_tv_output_mode(struct nv50_disp_priv *priv, int or, u32 mode)
 {
-	nv_wr32(priv, NV50_PDISPLAY_TV_OUTPUT_MODE_CTRL(or), mode);
+	nv_wr32(priv, NV50_PDISPLAY_DAC_TV_OUTPUT_MODE_CTRL(or), mode);
 	return 0;
 }
 

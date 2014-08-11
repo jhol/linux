@@ -103,7 +103,14 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 int
 nv50_dac_set_tv_output_mode(NV50_DISP_MTHD_V1)
 {
+	const u32 dpms_ctrl = NV50_PDISPLAY_DAC_DPMS_CTRL(or);
+	
 	nv_wr32(priv, NV50_PDISPLAY_DAC_TV_OUTPUT_MODE_CTRL(or), mode);
+
+	nv_mask(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x707f0000,
+		NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x50150000);
+	nv_wait(priv, 0x61a004 + doff, 0x80000000, 0x00000000);
+
 	return 0;
 }
 

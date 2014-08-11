@@ -33,6 +33,12 @@
 #include "nv50.h"
 #include "nouveau_reg.h"
 
+static void
+nv50_wait_dpms_ctrl(struct nv50_disp_priv *priv, const u32 dpms_ctrl)
+{
+	nv_wait(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING, 0);
+}
+
 int
 nv50_dac_power(NV50_DISP_MTHD_V1)
 {
@@ -56,10 +62,10 @@ nv50_dac_power(NV50_DISP_MTHD_V1)
 	} else
 		return ret;
 
-	nv_wait(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING, 0);
+	nv50_wait_dpms_ctrl(priv, dpms_ctrl);
 	nv_mask(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x4000007f,
 		NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | stat);
-	nv_wait(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING, 0);
+	nv50_wait_dpms_ctrl(priv, dpms_ctrl);
 	return 0;
 }
 
@@ -86,7 +92,7 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 
 	nv_mask(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x007f0000,
 		NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x00150000);
-	nv_wait(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING, 0);
+	nv50_wait_dpms_ctrl(priv, dpms_ctrl);
 
 	nv_wr32(priv, load_ctrl, 0x00100000 | loadval);
 	mdelay(9);
@@ -95,7 +101,7 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 
 	nv_mask(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x007f0000,
 		NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x00550000);
-	nv_wait(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING, 0);
+	nv50_wait_dpms_ctrl(priv, dpms_ctrl);
 
 	nv_debug(priv, "DAC%d sense: 0x%08x\n", outp->or, loadval);
 	if (!(loadval & 0x80000000))

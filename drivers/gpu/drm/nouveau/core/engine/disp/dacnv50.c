@@ -101,47 +101,28 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 }
 
 int
-nv50_dac_set_tv_output_mode(NV50_DISP_MTHD_V1)
+nv50_dac_tv_mode(NV50_DISP_MTHD_V1)
 {
-	const u32 dpms_ctrl = NV50_PDISPLAY_DAC_DPMS_CTRL(or);
-	
-	nv_wr32(priv, NV50_PDISPLAY_DAC_TV_OUTPUT_MODE_CTRL(or), mode);
+	union {
+		struct nv50_disp_dac_load_v0 v0;
+	} *args = data;
+	const u32 doff = outp->or * 0x800;
+	u32 mode;
+	int ret;
 
-	nv_mask(priv, dpms_ctrl, NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x707f0000,
-		NV50_PDISPLAY_DAC_DPMS_CTRL_PENDING | 0x50150000);
+	nv_ioctl(object, "disp dac tv_mode size %d\n", size);
+	if (nvif_unpack(args->v0, 0, 0, false)) {
+		nv_ioctl(object,
+			"disp dac tv_mode vers %d data %08x\n",
+			 args->v0.version, args->v0.data);
+		mode = args->v0.data;
+	} else
+		return ret;
+	
+	nv_wr32(priv, 0x61a008 + doff, mode);
+
+	nv_mask(priv, 0x61a004 + doff, 0xf07f0000, 0xd0150000);
 	nv_wait(priv, 0x61a004 + doff, 0x80000000, 0x00000000);
 
 	return 0;
-}
-
-int
-nv50_dac_mthd(struct nouveau_object *object, u32 mthd, void *args, u32 size)
-{
-	struct nv50_disp_priv *priv = (void *)object->engine;
-	const u8 or = (mthd & NV50_DISP_DAC_MTHD_OR);
-	u32 *data = args;
-	int ret;
-
-	if (size < sizeof(u32))
-		return -EINVAL;
-
-	switch (mthd & ~0x3f) {
-	case NV50_DISP_DAC_PWR:
-		ret = priv->dac.power(priv, or, data[0]);
-		break;
-	case NV50_DISP_DAC_LOAD:
-		ret = priv->dac.sense(priv, or, data[0]);
-		if (ret >= 0) {
-			data[0] = ret;
-			ret = 0;
-		}
-		break;
-	case NV50_DISP_DAC_TV_MODE:
-		ret = priv->dac.tv_output_mode(priv, or, data[0]);
-		break;
-	default:
-		BUG_ON(1);
-	}
-
-	return ret;
 }

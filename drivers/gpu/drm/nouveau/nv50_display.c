@@ -1716,7 +1716,22 @@ nv50_tv_update_properties(struct drm_encoder *encoder)
 		return;
 	}
 
-	nv_exec(disp->core, NV50_DISP_DAC_TV_MODE + or, &tv_mode_set, sizeof(tv_mode_set));
+	struct {
+		struct nv50_disp_mthd_v1 base;
+		struct nv50_disp_dac_load_v0 load;
+	} args = {
+		.base.version = 1,
+		.base.method = NV50_DISP_MTHD_V1_TV_MODE,
+		.base.hasht  = nv_encoder->dcb->hasht,
+		.base.hashm  = nv_encoder->dcb->hashm,
+	};
+	int ret;
+
+	args.load.data = nouveau_drm(encoder->dev)->vbios.dactestval;
+	if (args.load.data == 0)
+		args.load.data = 340;
+
+	nvif_mthd(disp->disp, 0, &args, sizeof(args));
 }
 
 static void

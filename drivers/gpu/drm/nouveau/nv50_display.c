@@ -1661,25 +1661,6 @@ static const struct drm_encoder_funcs nv50_dac_func = {
  * TV
  *****************************************************************************/
 
-struct nv50_tv_encoder {
-        struct nouveau_encoder base;
-
-#if 0
-        struct nv17_tv_state state;
-        struct nv17_tv_state saved_state;
-
-        int overscan;
-        int flicker;
-        int saturation;
-        int hue;
-        enum nv17_tv_norm tv_norm;
-#endif
-        int subconnector;
-        int select_subconnector;
-};
-#define to_tv_enc(x) container_of(nouveau_encoder(x),           \
-                                  struct nv50_tv_encoder, base)
-
 enum nv50_tv_norm {
 	TV_NORM_PAL,
 	TV_NORM_PAL_M,
@@ -1698,6 +1679,25 @@ char *nv50_tv_norm_names[NUM_TV_NORMS] = {
 	[TV_NORM_NTSC_M] = "NTSC-M",
 	[TV_NORM_NTSC_J] = "NTSC-J"
 };
+
+struct nv50_tv_encoder {
+        struct nouveau_encoder base;
+
+#if 0
+        struct nv17_tv_state state;
+        struct nv17_tv_state saved_state;
+
+        int overscan;
+        int flicker;
+        int saturation;
+        int hue;
+#endif
+        enum nv50_tv_norm tv_norm;
+        int subconnector;
+        int select_subconnector;
+};
+#define to_tv_enc(x) container_of(nouveau_encoder(x),           \
+                                  struct nv50_tv_encoder, base)
 
 static void
 nv50_tv_update_properties(struct drm_encoder *encoder)

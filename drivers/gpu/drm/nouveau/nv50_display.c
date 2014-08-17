@@ -1600,8 +1600,9 @@ nv50_dac_disconnect(struct drm_encoder *encoder)
 	nv_encoder->crtc = NULL;
 }
 
-static enum drm_connector_status
-nv50_dac_detect(struct drm_encoder *encoder, struct drm_connector *connector)
+static int
+nv50_dac_load(struct drm_encoder *encoder, struct drm_connector *connector,
+	u8 *load)
 {
 	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
 	struct nv50_disp *disp = nv50_disp(encoder->dev);
@@ -1621,10 +1622,17 @@ nv50_dac_detect(struct drm_encoder *encoder, struct drm_connector *connector)
 		args.load.data = 340;
 
 	ret = nvif_mthd(disp->disp, 0, &args, sizeof(args));
-	if (ret || !args.load.load)
-		return connector_status_disconnected;
+	*load = args.load.load;
 
-	return connector_status_connected;
+	return ret;
+}
+
+static enum drm_connector_status
+nv50_dac_detect(struct drm_encoder *encoder, struct drm_connector *connector)
+{
+	u8 load;
+	return (nv50_dac_load(encoder, connector, &load) || !load) ?
+		connector_status_disconnected : connector_status_connected;
 }
 
 static void
@@ -1745,18 +1753,11 @@ static enum drm_connector_status
 nv50_tv_detect(struct drm_encoder *encoder, struct drm_connector *connector)
 {
 	struct drm_device *dev = encoder->dev;
-	struct nouveau_drm *drm = nouveau_drm(dev);
 	struct drm_mode_config *conf = &dev->mode_config;
-	struct nv50_disp *disp = nv50_disp(encoder->dev);
 	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
-	struct dcb_output *dcb = tv_enc->base.dcb;
-	int ret, or = nouveau_encoder(encoder)->or;
-	u32 load = nouveau_drm(encoder->dev)->vbios.dactestval;
-	if (load == 0)
-		load = 340;
+	u8 load;
 
-	ret = nv_exec(disp->core, NV50_DISP_DAC_LOAD + or, &load, sizeof(load));
-	if (ret || !load)
+	if (nv50_dac_load(encoder, connector, &load) || !load)
 		return connector_status_disconnected;
 
 	switch (load) {
@@ -1777,12 +1778,6 @@ nv50_tv_detect(struct drm_encoder *encoder, struct drm_connector *connector)
 	drm_object_property_set_value(&connector->base,
 					 conf->tv_subconnector_property,
 					 tv_enc->subconnector);
-
-	if (tv_enc->subconnector) {
-		NV_INFO(drm, "Load detected on output %c\n",
-			'@' + ffs(dcb->or));
-		return connector_status_connected;
-	}
 
 	return connector_status_disconnected;
 }

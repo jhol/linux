@@ -1848,17 +1848,18 @@ static int
 nv50_tv_create(struct drm_connector *connector, struct dcb_output *dcbe,
 	struct nouveau_i2c_port *i2c_port)
 {
-	struct nouveau_encoder *nv_encoder;
 	struct drm_encoder *encoder;
+	struct nv50_tv_encoder *tv_enc;
 
-	nv_encoder = kzalloc(sizeof(*nv_encoder), GFP_KERNEL);
-	if (!nv_encoder)
+	tv_enc = kzalloc(sizeof(*tv_enc), GFP_KERNEL);
+	if (!tv_enc)
 		return -ENOMEM;
-	nv_encoder->dcb = dcbe;
-	nv_encoder->or = ffs(dcbe->or) - 1;
-	nv_encoder->i2c = i2c_port;
 
-	encoder = to_drm_encoder(nv_encoder);
+	tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_Unknown;
+	tv_enc->select_subconnector = DRM_MODE_SUBCONNECTOR_Automatic;
+
+	encoder = to_drm_encoder(&tv_enc->base);
+
 	encoder->possible_crtcs = dcbe->heads;
 	encoder->possible_clones = 0;
 	drm_encoder_init(connector->dev, encoder,

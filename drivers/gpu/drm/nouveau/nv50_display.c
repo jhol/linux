@@ -1680,7 +1680,7 @@ struct nv50_tv_encoder {
 #define to_tv_enc(x) container_of(nouveau_encoder(x),           \
                                   struct nv50_tv_encoder, base)
 
-enum nv50_tv_norm{
+enum nv50_tv_norm {
 	TV_NORM_PAL,
 	TV_NORM_PAL_M,
 	TV_NORM_PAL_N,
@@ -1702,42 +1702,36 @@ char *nv50_tv_norm_names[NUM_TV_NORMS] = {
 static void
 nv50_tv_update_properties(struct drm_encoder *encoder)
 {
-	u32 tv_mode_set;
+	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
 	struct nv50_disp *disp = nv50_disp(encoder->dev);
 	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
-	int or = nouveau_encoder(encoder)->or;
 
 	const int connector = tv_enc->select_subconnector ?
 		tv_enc->select_subconnector : tv_enc->subconnector;
 
+	struct {
+		struct nv50_disp_mthd_v1 base;
+		struct nv50_disp_dac_tv_mode_v0 mode;
+	} args = {
+		.base.version = 1,
+		.base.method = NV50_DISP_MTHD_V1_DAC_TV_MODE,
+		.base.hasht  = nv_encoder->dcb->hasht,
+		.base.hashm  = nv_encoder->dcb->hashm,
+	};
+
 	switch (connector) {
 	case DRM_MODE_SUBCONNECTOR_Composite:
-		tv_mode_set = 0x00000040;
+		args.mode.data = 0x00000040;
 		break;
 	case DRM_MODE_SUBCONNECTOR_SVIDEO:
-		tv_mode_set = 0x00000013;
+		args.mode.data = 0x00000013;
 		break;
 	case DRM_MODE_SUBCONNECTOR_Component:
-		tv_mode_set = 0x01a50000;
+		args.mode.data = 0x01a50000;
 		break;
 	default:
 		return;
 	}
-
-	struct {
-		struct nv50_disp_mthd_v1 base;
-		struct nv50_disp_dac_load_v0 load;
-	} args = {
-		.base.version = 1,
-		.base.method = NV50_DISP_MTHD_V1_TV_MODE,
-		.base.hasht  = nv_encoder->dcb->hasht,
-		.base.hashm  = nv_encoder->dcb->hashm,
-	};
-	int ret;
-
-	args.load.data = nouveau_drm(encoder->dev)->vbios.dactestval;
-	if (args.load.data == 0)
-		args.load.data = 340;
 
 	nvif_mthd(disp->disp, 0, &args, sizeof(args));
 }

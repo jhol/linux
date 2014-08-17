@@ -34,6 +34,8 @@
 #include "hw.h"
 #include "tvnv17.h"
 
+/// @todo WTF? We seem to need this for NV50
+
 MODULE_PARM_DESC(tv_norm, "Default TV norm.\n"
 		 "\t\tSupported: PAL, PAL-M, PAL-N, PAL-Nc, NTSC-M, NTSC-J,\n"
 		 "\t\t\thd480i, hd480p, hd576i, hd576p, hd720p, hd1080i.\n"

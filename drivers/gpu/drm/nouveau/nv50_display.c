@@ -1819,7 +1819,14 @@ static int nv50_tv_set_property(struct drm_encoder *encoder,
 				struct drm_property *property,
 				uint64_t val)
 {
-	return -EINVAL;
+	if (property == conf->tv_select_subconnector_property) {
+		tv_enc->select_subconnector = val;
+		nv50_tv_update_properties(encoder);
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 static const struct drm_encoder_helper_funcs nv50_tv_hfunc = {

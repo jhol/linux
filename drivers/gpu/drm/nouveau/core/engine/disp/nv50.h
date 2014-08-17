@@ -33,6 +33,7 @@ struct nv50_disp_priv {
 		int nr;
 		int (*power)(NV50_DISP_MTHD_V1);
 		int (*sense)(NV50_DISP_MTHD_V1);
+		int (*tv_output_mode)(NV50_DISP_MTHD_V1);
 	} dac;
 	struct {
 		int nr;

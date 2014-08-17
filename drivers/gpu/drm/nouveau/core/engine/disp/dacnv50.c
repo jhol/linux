@@ -99,3 +99,42 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 	args->v0.load = (loadval & 0x38000000) >> 27;
 	return 0;
 }
+
+int
+nv50_dac_set_tv_output_mode(NV50_DISP_MTHD_V1)
+{
+	nv_wr32(priv, NV50_PDISPLAY_TV_OUTPUT_MODE_CTRL(or), mode);
+	return 0;
+}
+
+int
+nv50_dac_mthd(struct nouveau_object *object, u32 mthd, void *args, u32 size)
+{
+	struct nv50_disp_priv *priv = (void *)object->engine;
+	const u8 or = (mthd & NV50_DISP_DAC_MTHD_OR);
+	u32 *data = args;
+	int ret;
+
+	if (size < sizeof(u32))
+		return -EINVAL;
+
+	switch (mthd & ~0x3f) {
+	case NV50_DISP_DAC_PWR:
+		ret = priv->dac.power(priv, or, data[0]);
+		break;
+	case NV50_DISP_DAC_LOAD:
+		ret = priv->dac.sense(priv, or, data[0]);
+		if (ret >= 0) {
+			data[0] = ret;
+			ret = 0;
+		}
+		break;
+	case NV50_DISP_DAC_TV_MODE:
+		ret = priv->dac.tv_output_mode(priv, or, data[0]);
+		break;
+	default:
+		BUG_ON(1);
+	}
+
+	return ret;
+}

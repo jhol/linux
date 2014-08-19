@@ -1662,22 +1662,22 @@ static const struct drm_encoder_funcs nv50_dac_func = {
  *****************************************************************************/
 
 enum nv50_tv_norm {
+	TV_NORM_NTSC_M = 0,
+	TV_NORM_NTSC_J,
 	TV_NORM_PAL,
 	TV_NORM_PAL_M,
 	TV_NORM_PAL_N,
 	TV_NORM_PAL_NC,
-	TV_NORM_NTSC_M,
-	TV_NORM_NTSC_J,
 	NUM_TV_NORMS
 };
 
 char *nv50_tv_norm_names[NUM_TV_NORMS] = {
+	[TV_NORM_NTSC_M] = "NTSC-M",
+	[TV_NORM_NTSC_J] = "NTSC-J",
 	[TV_NORM_PAL] = "PAL",
 	[TV_NORM_PAL_M] = "PAL-M",
 	[TV_NORM_PAL_N] = "PAL-N",
-	[TV_NORM_PAL_NC] = "PAL-Nc",
-	[TV_NORM_NTSC_M] = "NTSC-M",
-	[TV_NORM_NTSC_J] = "NTSC-J"
+	[TV_NORM_PAL_NC] = "PAL-Nc"
 };
 
 struct nv50_tv_encoder {
@@ -1741,6 +1741,39 @@ nv50_tv_commit(struct drm_encoder *encoder)
 {
 	nv50_dac_commit(encoder);
 	nv50_tv_update_properties(encoder);
+}
+
+static void
+nv50_tv_dac_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
+		  struct drm_display_mode *adjusted_mode)
+{
+	struct nv50_mast *mast = nv50_mast(encoder->dev);
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+	struct nouveau_crtc *nv_crtc = nouveau_crtc(encoder->crtc);
+	u32 *push;
+
+	const bool pal = 
+		tv_enc->tv_norm == TV_NORM_PAL ||
+		tv_enc->tv_norm == TV_NORM_PAL_M ||
+		tv_enc->tv_norm == TV_NORM_PAL_N ||
+		tv_enc->tv_norm == TV_NORM_PAL_NC;
+
+	nv50_dac_dpms(encoder, DRM_MODE_DPMS_ON);
+
+#error Stuff Here!
+
+	push = evo_wait(mast, 8);
+	if (push) {
+		evo_mthd(push, 0x0400 + (nv_encoder->or * 0x080), 2);
+		evo_data(push, (1 << nv_crtc->index) |
+			(tv_enc->tv_norm + 1) << 8 |
+			));
+		evo_data(push, syncs);
+
+		evo_kick(push, mast);
+	}
+
+	nv_encoder->crtc = encoder->crtc;
 }
 
 static enum drm_connector_status
@@ -1862,6 +1895,7 @@ nv50_tv_create(struct drm_connector *connector, struct dcb_output *dcbe,
 	if (!tv_enc)
 		return -ENOMEM;
 
+	tv_enc->tv_norm = TV_NORM_PAL;
 	tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_Unknown;
 	tv_enc->select_subconnector = DRM_MODE_SUBCONNECTOR_Automatic;
 

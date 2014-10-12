@@ -99,3 +99,30 @@ nv50_dac_sense(NV50_DISP_MTHD_V1)
 	args->v0.load = (loadval & 0x38000000) >> 27;
 	return 0;
 }
+
+int
+nv50_dac_tv_mode(NV50_DISP_MTHD_V1)
+{
+	union {
+		struct nv50_disp_dac_load_v0 v0;
+	} *args = data;
+	const u32 doff = outp->or * 0x800;
+	u32 mode;
+	int ret;
+
+	nv_ioctl(object, "disp dac tv_mode size %d\n", size);
+	if (nvif_unpack(args->v0, 0, 0, false)) {
+		nv_ioctl(object,
+			"disp dac tv_mode vers %d data %08x\n",
+			 args->v0.version, args->v0.data);
+		mode = args->v0.data;
+	} else
+		return ret;
+	
+	nv_wr32(priv, 0x61a008 + doff, mode);
+
+	nv_mask(priv, 0x61a004 + doff, 0xf07f0000, 0xd0150000);
+	nv_wait(priv, 0x61a004 + doff, 0x80000000, 0x00000000);
+
+	return 0;
+}

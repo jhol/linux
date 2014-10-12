@@ -1984,6 +1984,7 @@ nv50_disp_ctor(struct nouveau_object *parent, struct nouveau_object *engine,
 	priv->pior.nr = 3;
 	priv->dac.power = nv50_dac_power;
 	priv->dac.sense = nv50_dac_sense;
+	priv->dac.tv_mode = nv50_dac_tv_mode;
 	priv->sor.power = nv50_sor_power;
 	priv->pior.power = nv50_pior_power;
 	return 0;

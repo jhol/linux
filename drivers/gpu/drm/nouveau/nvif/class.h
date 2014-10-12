@@ -404,6 +404,7 @@ struct nv50_disp_mthd_v1 {
 	__u8  version;
 #define NV50_DISP_MTHD_V1_DAC_PWR                                          0x10
 #define NV50_DISP_MTHD_V1_DAC_LOAD                                         0x11
+#define NV50_DISP_MTHD_V1_DAC_TV_MODE                                      0x12
 #define NV50_DISP_MTHD_V1_SOR_PWR                                          0x20
 #define NV50_DISP_MTHD_V1_SOR_HDA_ELD                                      0x21
 #define NV50_DISP_MTHD_V1_SOR_HDMI_PWR                                     0x22
@@ -430,6 +431,12 @@ struct nv50_disp_dac_load_v0 {
 	__u8  load;
 	__u8  pad02[2];
 	__u32 data;
+};
+
+struct nv50_disp_dac_tv_mode_v0 {
+	__u8  version;
+	__u32 data;
+	__u8  pad05[3];
 };
 
 struct nv50_disp_sor_pwr_v0 {

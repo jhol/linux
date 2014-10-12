@@ -35,6 +35,7 @@ struct nv50_disp_priv {
 		int nr;
 		int (*power)(NV50_DISP_MTHD_V1);
 		int (*sense)(NV50_DISP_MTHD_V1);
+		int (*tv_mode)(NV50_DISP_MTHD_V1);
 	} dac;
 	struct {
 		int nr;
@@ -70,6 +71,7 @@ int nvd0_disp_base_scanoutpos(NV50_DISP_MTHD_V0);
 
 int nv50_dac_power(NV50_DISP_MTHD_V1);
 int nv50_dac_sense(NV50_DISP_MTHD_V1);
+int nv50_dac_tv_mode(NV50_DISP_MTHD_V1);
 
 int nva3_hda_eld(NV50_DISP_MTHD_V1);
 int nvd0_hda_eld(NV50_DISP_MTHD_V1);

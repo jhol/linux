@@ -1735,7 +1735,7 @@ nv50_tv_update_properties(struct drm_encoder *encoder)
 static void
 nv50_tv_commit(struct drm_encoder *encoder)
 {
-	nv50_dac_commit(encoder);
+	//nv50_dac_commit(encoder);
 	nv50_tv_update_properties(encoder);
 }
 
@@ -1749,9 +1749,9 @@ nv50_tv_dac_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
 	u32 *push;
 
+#if 0
 	nv50_dac_dpms(encoder, DRM_MODE_DPMS_ON);
 
-#if 0
 	push = evo_wait(mast, 4);
 	if (push) {
 		evo_mthd(push, 0x0400 + (nv_encoder->or * 0x080), 2);
@@ -1778,6 +1778,8 @@ nv50_tv_detect(struct drm_encoder *encoder, struct drm_connector *connector)
 	struct drm_mode_config *conf = &dev->mode_config;
 	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
 	u8 load;
+
+	return connector_status_disconnected;
 
 	if (nv50_dac_load(encoder, connector, &load) || !load)
 		return connector_status_disconnected;
@@ -2738,9 +2740,11 @@ nv50_display_create(struct drm_device *dev)
 					i2c_port, &nv50_dac_func,
 					&nv50_dac_hfunc);
 				break;
+#if 0
 			case DCB_OUTPUT_TV:
 				ret = nv50_tv_create(connector, dcbe, i2c_port);
 				break;
+#endif
 			case DCB_OUTPUT_TMDS:
 			case DCB_OUTPUT_DP:
 				ret = nv50_encoder_create(connector, dcbe,

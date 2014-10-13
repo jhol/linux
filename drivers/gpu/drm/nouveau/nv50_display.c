@@ -1754,11 +1754,7 @@ nv50_tv_dac_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	push = evo_wait(mast, 4);
 	if (push) {
 		evo_mthd(push, 0x0400 + (nv_encoder->or * 0x080), 2);
-		evo_data(push, (1 << nv_crtc->index) |
-			(tv_enc->tv_norm + 1) << 8 |
-			((tv_enc->tv_norm == TV_NORM_PAL ||
-				tv_enc->tv_norm == TV_NORM_PAL_NC) ?
-				1 << 14 : 0));
+		evo_data(push, 0x142);
 		evo_data(push, 0);
 
 		evo_mthd(push, 0x0420 + (nv_encoder->or * 0x080), 1);
@@ -1816,12 +1812,7 @@ static int nv50_tv_get_modes(struct drm_encoder *encoder,
 		int hdisplay;
 		int vdisplay;
 	} modes[] = {
-		{ 512, 384 },
-		{ 640, 400 },
-		{ 640, 480 },
-		{ 720, 480 },
-		{ 800, 600 },
-		{ 1024, 768 }
+		{ 720, 482 }
 	};
 	int i, n = 0;
 

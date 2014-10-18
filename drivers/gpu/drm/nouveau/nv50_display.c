@@ -1574,8 +1574,9 @@ nv50_dac_disconnect(struct drm_encoder *encoder)
 	nv_encoder->crtc = NULL;
 }
 
-static enum drm_connector_status
-nv50_dac_detect(struct drm_encoder *encoder, struct drm_connector *connector)
+static int
+nv50_dac_load(struct drm_encoder *encoder, struct drm_connector *connector,
+	u8 *load)
 {
 	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
 	struct nv50_disp *disp = nv50_disp(encoder->dev);
@@ -1595,10 +1596,17 @@ nv50_dac_detect(struct drm_encoder *encoder, struct drm_connector *connector)
 		args.load.data = 340;
 
 	ret = nvif_mthd(disp->disp, 0, &args, sizeof(args));
-	if (ret || !args.load.load)
-		return connector_status_disconnected;
+	*load = args.load.load;
 
-	return connector_status_connected;
+	return ret;
+}
+
+static enum drm_connector_status
+nv50_dac_detect(struct drm_encoder *encoder, struct drm_connector *connector)
+{
+	u8 load;
+	return (nv50_dac_load(encoder, connector, &load) || !load) ?
+		connector_status_disconnected : connector_status_connected;
 }
 
 static void
@@ -1646,6 +1654,302 @@ nv50_dac_create(struct drm_connector *connector, struct dcb_output *dcbe)
 	drm_encoder_helper_add(encoder, &nv50_dac_hfunc);
 
 	drm_mode_connector_attach_encoder(connector, encoder);
+	return 0;
+}
+
+/******************************************************************************
+ * TV
+ *****************************************************************************/
+
+enum nv50_tv_norm {
+	TV_NORM_NTSC_M = 0,
+	TV_NORM_NTSC_J,
+	TV_NORM_PAL,
+	TV_NORM_PAL_M,
+	TV_NORM_PAL_N,
+	TV_NORM_PAL_NC,
+	NUM_TV_NORMS
+};
+
+char *nv50_tv_norm_names[NUM_TV_NORMS] = {
+	[TV_NORM_NTSC_M] = "NTSC-M",
+	[TV_NORM_NTSC_J] = "NTSC-J",
+	[TV_NORM_PAL] = "PAL",
+	[TV_NORM_PAL_M] = "PAL-M",
+	[TV_NORM_PAL_N] = "PAL-N",
+	[TV_NORM_PAL_NC] = "PAL-Nc"
+};
+
+struct nv50_tv_encoder {
+        struct nouveau_encoder base;
+
+        enum nv50_tv_norm tv_norm;
+        int subconnector;
+        int select_subconnector;
+};
+#define to_tv_enc(x) container_of(nouveau_encoder(x),           \
+                                  struct nv50_tv_encoder, base)
+
+static void
+nv50_tv_update_properties(struct drm_encoder *encoder)
+{
+	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
+	struct nv50_disp *disp = nv50_disp(encoder->dev);
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+
+	const int connector = tv_enc->select_subconnector ?
+		tv_enc->select_subconnector : tv_enc->subconnector;
+
+	struct {
+		struct nv50_disp_mthd_v1 base;
+		struct nv50_disp_dac_tv_mode_v0 mode;
+	} args = {
+		.base.version = 1,
+		.base.method = NV50_DISP_MTHD_V1_DAC_TV_MODE,
+		.base.hasht  = nv_encoder->dcb->hasht,
+		.base.hashm  = nv_encoder->dcb->hashm,
+	};
+
+	switch (connector) {
+	case DRM_MODE_SUBCONNECTOR_Composite:
+		args.mode.data = 0x00000040;
+		break;
+	case DRM_MODE_SUBCONNECTOR_SVIDEO:
+		args.mode.data = 0x00000013;
+		break;
+	case DRM_MODE_SUBCONNECTOR_Component:
+		args.mode.data = 0x01a50000;
+		break;
+	default:
+		return;
+	}
+
+	nvif_mthd(disp->disp, 0, &args, sizeof(args));
+}
+
+static void
+nv50_tv_commit(struct drm_encoder *encoder)
+{
+	nv50_dac_commit(encoder);
+	nv50_tv_update_properties(encoder);
+}
+
+static void
+nv50_tv_dac_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
+		  struct drm_display_mode *adjusted_mode)
+{
+	struct nv50_mast *mast = nv50_mast(encoder->dev);
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+	struct nouveau_crtc *nv_crtc = nouveau_crtc(encoder->crtc);
+	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
+	u32 *push;
+
+	nv50_dac_dpms(encoder, DRM_MODE_DPMS_ON);
+
+	(void)push;
+	(void)nv_crtc;
+	(void)tv_enc;
+	(void)mast;
+#if 0
+	push = evo_wait(mast, 4);
+	if (push) {
+		evo_mthd(push, 0x0400 + (nv_encoder->or * 0x080), 2);
+		evo_data(push, (1 << nv_crtc->index) |
+			(tv_enc->tv_norm + 1) << 8 |
+			((tv_enc->tv_norm == TV_NORM_PAL ||
+				tv_enc->tv_norm == TV_NORM_PAL_NC) ?
+				1 << 14 : 0));
+		evo_data(push, 0);
+
+		evo_mthd(push, 0x0420 + (nv_encoder->or * 0x080), 1);
+		evo_data(push, 0x00010000);
+
+		evo_mthd(push, 0x0080, 1);
+		evo_data(push, 0x00000000);
+
+		evo_kick(push, mast);
+	}
+#endif
+
+	nv_encoder->crtc = encoder->crtc;
+}
+
+static enum drm_connector_status
+nv50_tv_detect(struct drm_encoder *encoder, struct drm_connector *connector)
+{
+	struct drm_device *dev = encoder->dev;
+	struct drm_mode_config *conf = &dev->mode_config;
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+	u8 load;
+
+	if (nv50_dac_load(encoder, connector, &load) || !load)
+		return connector_status_disconnected;
+
+	switch (load) {
+	case 0x4:
+		tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_Composite;
+		break;
+	case 0x3:
+		tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_SVIDEO;
+		break;
+	case 0x7:
+		tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_Component;
+		break;
+	default:
+		tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_Unknown;
+		break;
+	}
+
+	drm_object_property_set_value(&connector->base,
+					 conf->tv_subconnector_property,
+					 tv_enc->subconnector);
+
+	return connector_status_connected;
+}
+
+static int nv50_tv_get_modes(struct drm_encoder *encoder,
+			     struct drm_connector *connector)
+{
+	struct drm_display_mode *mode;
+
+	const struct {
+		int hdisplay;
+		int vdisplay;
+	} modes[] = {
+		{ 512, 384 },
+		{ 640, 400 },
+		{ 640, 480 },
+		{ 720, 480 },
+		{ 800, 600 },
+		{ 1024, 768 }
+	};
+	int i, n = 0;
+
+	printk(KERN_INFO "---- %s encoder->crtc = %p\n", __func__, encoder->crtc);
+
+	for (i = 0; i < ARRAY_SIZE(modes); i++) {
+#if 0
+		if (modes[i].hdisplay == output_mode->hdisplay &&
+		    modes[i].vdisplay == output_mode->vdisplay) {
+
+			mode = drm_mode_duplicate(encoder->dev, output_mode);
+			mode->type |= DRM_MODE_TYPE_PREFERRED;
+		} else {
+#endif
+			mode = drm_cvt_mode(encoder->dev, modes[i].hdisplay,
+					    modes[i].vdisplay, 60, false,
+					    0/*(output_mode->flags &
+					     DRM_MODE_FLAG_INTERLACE)*/, false);
+#if 0
+		}
+#endif
+
+		mode->type |= DRM_MODE_TYPE_DRIVER;
+		drm_mode_probed_add(connector, mode);
+		n++;
+	}
+
+	return n;
+}
+
+static int nv50_tv_mode_valid(struct drm_encoder *encoder,
+			      struct drm_display_mode *mode)
+{
+	return MODE_OK;
+}
+
+static int nv50_tv_create_resources(struct drm_encoder *encoder,
+				    struct drm_connector *connector)
+{
+	struct drm_device *dev = encoder->dev;
+	struct drm_mode_config *conf = &dev->mode_config;
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+
+	drm_mode_create_tv_properties(dev, NUM_TV_NORMS, nv50_tv_norm_names);
+
+	drm_object_attach_property(&connector->base,
+					conf->tv_select_subconnector_property,
+					tv_enc->select_subconnector);
+	drm_object_attach_property(&connector->base,
+					conf->tv_subconnector_property,
+					tv_enc->subconnector);
+
+	return 0;
+}
+
+static int nv50_tv_set_property(struct drm_encoder *encoder,
+				struct drm_connector *connector,
+				struct drm_property *property,
+				uint64_t val)
+{
+	struct drm_device *dev = encoder->dev;
+	struct drm_mode_config *conf = &dev->mode_config;
+	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
+
+	if (property == conf->tv_select_subconnector_property) {
+		tv_enc->select_subconnector = val;
+		nv50_tv_update_properties(encoder);
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static const struct drm_encoder_helper_funcs nv50_tv_hfunc = {
+	.dpms = nv50_dac_dpms,
+	.mode_fixup = nv50_dac_mode_fixup,
+	.prepare = nv50_dac_disconnect,
+	.commit = nv50_tv_commit,
+	.mode_set = nv50_tv_dac_mode_set,
+	.disable = nv50_dac_disconnect,
+	.get_crtc = nv50_display_crtc_get,
+	.detect = nv50_tv_detect
+};
+
+static struct drm_encoder_slave_funcs nv50_tv_slave_funcs = {
+	.get_modes = nv50_tv_get_modes,
+	.mode_valid = nv50_tv_mode_valid,
+	.create_resources = nv50_tv_create_resources,
+	.set_property = nv50_tv_set_property,
+};
+
+static const struct drm_encoder_funcs nv50_tv_func = {
+	.destroy = nv50_dac_destroy,
+};
+
+static int
+nv50_tv_create(struct drm_connector *connector, struct dcb_output *dcbe)
+{
+	struct nouveau_drm *drm = nouveau_drm(connector->dev);
+	struct nouveau_i2c *i2c = nvkm_i2c(&drm->device);
+	struct nv50_tv_encoder *tv_enc;
+	struct drm_encoder *encoder;
+
+	tv_enc = kzalloc(sizeof(*tv_enc), GFP_KERNEL);
+	if (!tv_enc)
+		return -ENOMEM;
+
+	tv_enc->base.dcb = dcbe;
+	tv_enc->base.or = ffs(dcbe->or) - 1;
+	tv_enc->base.i2c = i2c->find(i2c, dcbe->i2c_index);
+	tv_enc->base.last_dpms = DRM_MODE_DPMS_ON;
+
+	tv_enc->tv_norm = TV_NORM_PAL;
+	tv_enc->subconnector = DRM_MODE_SUBCONNECTOR_Unknown;
+	tv_enc->select_subconnector = DRM_MODE_SUBCONNECTOR_Automatic;
+
+	encoder = to_drm_encoder(&tv_enc->base);
+
+	encoder->possible_crtcs = dcbe->heads;
+	encoder->possible_clones = 0;
+	drm_encoder_init(connector->dev, encoder,
+		&nv50_tv_func, DRM_MODE_ENCODER_TVDAC);
+	drm_encoder_helper_add(encoder, &nv50_tv_hfunc);
+	to_encoder_slave(encoder)->slave_funcs = &nv50_tv_slave_funcs;
+
+        nv50_tv_create_resources(encoder, connector);
+        drm_mode_connector_attach_encoder(connector, encoder);
 	return 0;
 }
 
@@ -2516,6 +2820,9 @@ nv50_display_create(struct drm_device *dev)
 				break;
 			case DCB_OUTPUT_ANALOG:
 				ret = nv50_dac_create(connector, dcbe);
+				break;
+			case DCB_OUTPUT_TV:
+				ret = nv50_tv_create(connector, dcbe);
 				break;
 			default:
 				ret = -ENODEV;

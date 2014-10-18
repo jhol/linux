@@ -1551,6 +1551,7 @@ exec_clkcmp(struct nv50_disp_priv *priv, int head, int id, u32 pclk, u32 *conf)
 			*conf = (ctrl & 0x00000f00) >> 8;
 			break;
 		case DCB_OUTPUT_ANALOG:
+		case DCB_OUTPUT_TV:
 		default:
 			*conf = 0x00ff;
 			break;
@@ -1806,7 +1807,8 @@ nv50_disp_intr_unk20_2(struct nv50_disp_priv *priv, int head)
 
 	exec_clkcmp(priv, head, 0, pclk, &conf);
 
-	if (!outp->info.location && outp->info.type == DCB_OUTPUT_ANALOG) {
+	if (!outp->info.location && (outp->info.type == DCB_OUTPUT_ANALOG ||
+		outp->info.type == DCB_OUTPUT_TV)) {
 		oreg = 0x614280 + (ffs(outp->info.or) - 1) * 0x800;
 		oval = 0x00000000;
 		hval = 0x00000000;

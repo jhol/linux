@@ -1730,7 +1730,7 @@ nv50_tv_update_properties(struct drm_encoder *encoder)
 static void
 nv50_tv_commit(struct drm_encoder *encoder)
 {
-	nv50_dac_commit(encoder);
+	//nv50_dac_commit(encoder);
 	nv50_tv_update_properties(encoder);
 }
 
@@ -1744,13 +1744,12 @@ nv50_tv_dac_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
 	u32 *push;
 
-	nv50_dac_dpms(encoder, DRM_MODE_DPMS_ON);
-
 	(void)push;
 	(void)nv_crtc;
 	(void)tv_enc;
 	(void)mast;
 #if 0
+	nv50_dac_dpms(encoder, DRM_MODE_DPMS_ON);
 	push = evo_wait(mast, 4);
 	if (push) {
 		evo_mthd(push, 0x0400 + (nv_encoder->or * 0x080), 2);

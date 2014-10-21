@@ -1730,7 +1730,7 @@ nv50_tv_update_properties(struct drm_encoder *encoder)
 static void
 nv50_tv_commit(struct drm_encoder *encoder)
 {
-	//nv50_dac_commit(encoder);
+	nv50_dac_commit(encoder);
 	nv50_tv_update_properties(encoder);
 }
 
@@ -1743,6 +1743,9 @@ nv50_tv_dac_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	struct nouveau_crtc *nv_crtc = nouveau_crtc(encoder->crtc);
 	struct nouveau_encoder *nv_encoder = nouveau_encoder(encoder);
 	u32 *push;
+
+	printk(KERN_INFO ":::: %s nv_crtc->index = %d, nv_encoder->or = %d\n",
+		"nv50_tv_dac_mode_set", nv_crtc->index, nv_encoder->or);
 
 	(void)push;
 	(void)nv_crtc;
@@ -1828,8 +1831,7 @@ static int nv50_tv_get_modes(struct drm_encoder *encoder,
 #endif
 			mode = drm_cvt_mode(encoder->dev, modes[i].hdisplay,
 					    modes[i].vdisplay, 60, false,
-					    0/*(output_mode->flags &
-					     DRM_MODE_FLAG_INTERLACE)*/, false);
+					    DRM_MODE_FLAG_INTERLACE, false);
 #if 0
 		}
 #endif
@@ -1855,6 +1857,8 @@ static int nv50_tv_create_resources(struct drm_encoder *encoder,
 	struct drm_mode_config *conf = &dev->mode_config;
 	struct nv50_tv_encoder *tv_enc = to_tv_enc(encoder);
 
+	struct nouveau_crtc *nv_crtc = nouveau_crtc(tv_enc->base.crtc);
+
 	drm_mode_create_tv_properties(dev, NUM_TV_NORMS, nv50_tv_norm_names);
 
 	drm_object_attach_property(&connector->base,
@@ -1863,6 +1867,9 @@ static int nv50_tv_create_resources(struct drm_encoder *encoder,
 	drm_object_attach_property(&connector->base,
 					conf->tv_subconnector_property,
 					tv_enc->subconnector);
+
+	//printk(KERN_INFO ":::: %s nv_crtc->index = %d, nv_encoder->or = %d\n",
+	//	"nv50_tv_create_resources", nv_crtc->index, tv_enc->base.or);
 
 	return 0;
 }
@@ -1939,7 +1946,9 @@ nv50_tv_create(struct drm_connector *connector, struct dcb_output *dcbe)
 	to_encoder_slave(encoder)->slave_funcs = &nv50_tv_slave_funcs;
 
         nv50_tv_create_resources(encoder, connector);
+
         drm_mode_connector_attach_encoder(connector, encoder);
+
 	return 0;
 }
 
